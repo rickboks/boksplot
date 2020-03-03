@@ -13,10 +13,21 @@ is_set(){
 	eval '[ ${'$2'[$1]+isset} ]'
 }
 
+parse_user_title_command(){
+	local words=( "$@" )
+	local len_arr=$(( ${#words[@]}))
+		
+	if [[ $len_arr == 2 ]]; then
+		global_options["title"]=${words[1]}
+	else
+		echo "Usage: title <title>"
+	fi
+}
+
 request_line_titles(){
 	for ((i = 1; i <= num_lines; i++))
 	do
-		echo -n "Title of line $i: "
+		echo -n "Name of line $i: "
 		read linetitle
 		line_options[${i}title]=$linetitle
 	done
@@ -55,6 +66,10 @@ handle_line_styles(){
 create_plotfile(){
 	#echo "set terminal wxt" > "$plotfile"
 	echo "filename = \"$fullpath\"" > "$plotfile"
+
+	if is_set "title" global_options; then
+		echo "set title \"${global_options[title]}\"" >> "$plotfile"
+	fi
 
 	# Output line titles
 	for ((i=1; i <= num_lines; i++)); do
@@ -134,6 +149,15 @@ parse_user_color_command(){
 	fi
 }
 
+set_random_colors(){
+	for((i=1;i<=num_lines;i++)); do
+		local length=${#legal_colors[@]}
+		local rand=$[$RANDOM % $length]
+		local color=${legal_colors[$rand]}				
+		line_options["${i}lc rgb"]="\"$color\""
+	done
+}
+
 parse_user_style_command(){
 	local words=( "$@" )
 	local len=${#words[@]}
@@ -148,7 +172,6 @@ parse_user_style_command(){
 	else
 		echo "Too many arguments"
 	fi
-
 }
 
 plot(){
@@ -157,15 +180,6 @@ plot(){
 
 help(){
 	echo "not yet implemented"
-}
-
-set_random_colors(){
-	for((i=1;i<=num_lines;i++)); do
-		local length=${#legal_colors[@]}
-		local rand=$[$RANDOM % $length]
-		local color=${legal_colors[$rand]}				
-		line_options["${i}lc rgb"]="\"$color\""
-	done
 }
 
 interactive_mode(){
@@ -197,8 +211,11 @@ interactive_mode(){
 			help)
 				help
 				;;
-			titles)
+			names)
 				request_line_titles
+				;;
+			title)
+				parse_user_title_command ${words[@]}
 				;;
 			*)
 				echo "invalid command"
