@@ -67,9 +67,13 @@ create_plotfile(){
 	#echo "set terminal wxt" > "$plotfile"
 	echo "filename = \"$fullpath\"" > "$plotfile"
 
-	if is_set "title" global_options; then
-		echo "set title \"${global_options[title]}\"" >> "$plotfile"
-	fi
+	# Set global options
+	for opt in ${legal_global_options[@]}
+	do
+		if is_set $opt global_options; then
+			echo "set $opt \"${global_options[$opt]}\"" >> "$plotfile"
+		fi
+	done
 
 	# Output line titles
 	for ((i=1; i <= num_lines; i++)); do
@@ -151,9 +155,9 @@ parse_user_color_command(){
 
 set_random_colors(){
 	for((i=1;i<=num_lines;i++)); do
-		local length=${#legal_colors[@]}
+		local length=${#nice_colors[@]}
 		local rand=$[$RANDOM % $length]
-		local color=${legal_colors[$rand]}				
+		local color=${nice_colors[$rand]}				
 		line_options["${i}lc rgb"]="\"$color\""
 	done
 }
@@ -217,6 +221,16 @@ interactive_mode(){
 			title)
 				parse_user_title_command ${words[@]}
 				;;
+			colors)
+				set_random_colors
+				;;
+			xlabel)
+				global_options["xlabel"]=${words[1]}
+				;;
+			ylabel)
+				global_options["ylabel"]=${words[1]}
+				;;
+
 			*)
 				echo "invalid command"
 				;;
