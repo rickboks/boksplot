@@ -225,10 +225,10 @@ interactive_mode(){
 				set_random_colors
 				;;
 			xlabel)
-				global_options["xlabel"]=${words[1]}
+				global_options["xlabel"]="${words[@]:1}"
 				;;
 			ylabel)
-				global_options["ylabel"]=${words[1]}
+				global_options["ylabel"]="${words[@]:1}"
 				;;
 
 			*)
@@ -238,7 +238,7 @@ interactive_mode(){
 	done
 }
 
-source constants.env
+source /home/rick/boksplot/constants.env
 
 lineTitles=()
 inputfile=$1
