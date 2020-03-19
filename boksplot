@@ -13,17 +13,6 @@ is_set(){
 	eval '[ ${'$2'[$1]+isset} ]'
 }
 
-parse_user_title_command(){
-	local words=( "$@" )
-	local len_arr=$(( ${#words[@]}))
-		
-	if [[ $len_arr == 2 ]]; then
-		global_options["title"]=${words[1]}
-	else
-		echo "Usage: title <title>"
-	fi
-}
-
 request_line_titles(){
 	for ((i = 1; i <= num_lines; i++))
 	do
@@ -31,6 +20,11 @@ request_line_titles(){
 		read linetitle
 		line_options[${i}title]=$linetitle
 	done
+}
+
+parse_global_command(){
+	local words=( "$@" )
+	global_options[${words[0]}]="${words[@]:1}"
 }
 
 get_plotfile_path(){
@@ -64,14 +58,13 @@ handle_line_styles(){
 }
 
 create_plotfile(){
-	#echo "set terminal wxt" > "$plotfile"
 	echo "filename = \"$fullpath\"" > "$plotfile"
 
 	# Set global options
 	for opt in ${legal_global_options[@]}
 	do
 		if is_set $opt global_options; then
-			echo "set $opt \"${global_options[$opt]}\"" >> "$plotfile"
+			echo "set $opt ${global_options[$opt]}" >> "$plotfile"
 		fi
 	done
 
@@ -195,7 +188,7 @@ interactive_mode(){
 			words+=( $word )
 		done
 		case ${words[0]} in 
-			exit)
+			exit | quit)
 				exit
 				;;
 			plot)
@@ -218,19 +211,22 @@ interactive_mode(){
 			names)
 				request_line_titles
 				;;
-			title)
-				parse_user_title_command ${words[@]}
+			title | xlabel | ylabel ) 
+				#global_options["title"]="\"${words[@]:1}\""
+				parse_global_command "${words[0]}" "\"${words[@]:1}\""
+				;;
+			xrange | yrange )
+				parse_global_command "${words[0]}" "${words[@]:1}"
 				;;
 			colors)
 				set_random_colors
 				;;
-			xlabel)
-				global_options["xlabel"]="${words[@]:1}"
+			colors?)
+				# Show list of colors
+				for color in ${nice_colors[@]}; do
+					echo $color
+				done
 				;;
-			ylabel)
-				global_options["ylabel"]="${words[@]:1}"
-				;;
-
 			*)
 				echo "invalid command"
 				;;
