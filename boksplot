@@ -43,7 +43,7 @@ handle_line_type(){
 }
 
 handle_line_styles(){
-	for ((i=1; i <= num_lines; i++)); do
+	for i in "${columns[@]}"; do
 		echo -n "set style line $i " >> "$plotfile"
 		for option in "${line_styling_options[@]}"; do
 			val=${option_defaults[$option]}
@@ -74,8 +74,8 @@ create_plotfile(){
 		echo "title$i = \"$title\"" >> "$plotfile"
 	done
 
+	# Output line styles
 	handle_line_styles
-
 
 	if [[ "${columns[@]}" != "" ]]; then
 		echo -n "plot " >> "$plotfile"
