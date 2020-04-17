@@ -14,8 +14,7 @@ is_set(){
 }
 
 request_line_titles(){
-	for ((i = 1; i <= num_lines; i++))
-	do
+	for i in "${columns[@]}"; do
 		echo -n "Name of line $i: "
 		read linetitle
 		line_options[${i}title]=$linetitle
@@ -69,7 +68,7 @@ create_plotfile(){
 	done
 
 	# Output line titles
-	for ((i=1; i <= num_lines; i++)); do
+	for i in "${columns[@]}"; do
 		local title=${option_defaults["title"]}
 		if is_set "${i}title" line_options; then title=${line_options["${i}title"]};fi
 		echo "title$i = \"$title\"" >> "$plotfile"
@@ -77,18 +76,22 @@ create_plotfile(){
 
 	handle_line_styles
 
-	# Plot command
-	for ((i=1; i<= num_lines; i++)); do
-		if [[ $i == 1 ]]; then
-			echo -n "plot " >> "$plotfile"
-		fi
 
+	if [[ "${columns[@]}" != "" ]]; then
+		echo -n "plot " >> "$plotfile"
+	else 
+		echo "No columns to plot"
+		return
+	fi
+
+	# Plot command
+	for i in "${columns[@]}"; do
 		local style=${option_defaults["style"]}
 		if is_set "${i}style" line_options; then
 			style=${line_options[${i}style]}
 		fi
 			
-		echo -n "filename using $((i+1)) title title$i ls $i with $style" >> "$plotfile"
+		echo -n "filename using 1:$((i+1)) title title$i ls $i with $style" >> "$plotfile"
 
 		if [[ $i != $num_lines ]]; then
 			echo ", \\" >> "$plotfile"	
@@ -105,7 +108,7 @@ is_number(){
 	return 1
 }
 
-parse_user_command(){
+parse_user_width_command(){
 	local words=( "$@" )
 	local len_arr=$(( ${#words[@]} -1 ))
 	local arg_start=$((len_arr+1))	
@@ -196,8 +199,8 @@ interactive_mode(){
 				plot
 				;;
 			width | size)
-				parse_user_command ${words[@]} "lw"
-				parse_user_command ${words[@]} "ps"
+				parse_user_width_command ${words[@]} "lw"
+				parse_user_width_command ${words[@]} "ps"
 				;;
 			color)
 				parse_user_color_command ${words[@]} "lc rgb"
@@ -205,27 +208,29 @@ interactive_mode(){
 			style)
 				parse_user_style_command ${words[@]}
 				;;
-			help)
-				help
-				;;
 			names)
 				request_line_titles
 				;;
 			title | xlabel | ylabel ) 
-				#global_options["title"]="\"${words[@]:1}\""
 				parse_global_command "${words[0]}" "\"${words[@]:1}\""
 				;;
-			xrange | yrange )
+			xrange | yrange | key)
 				parse_global_command "${words[0]}" "${words[@]:1}"
 				;;
 			colors)
 				set_random_colors
 				;;
+			columns) 
+				columns=("${words[@]:1}")
+			;;
 			colors?)
 				# Show list of colors
 				for color in ${nice_colors[@]}; do
 					echo $color
 				done
+				;;
+			help)
+				help
 				;;
 			*)
 				echo "invalid command"
@@ -247,8 +252,11 @@ get_plotfile_path
 num_colums=$(head -n1 $fullpath | awk '{print NF}')
 num_lines=$(( num_colums - 1))
 
-set_random_colors
+for ((i=1;i<$num_colums;i++)); do
+	columns+=("$i")
+done
 
+set_random_colors
 ######################################################
 
 echo "Welcome to Boksplot!"
