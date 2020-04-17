@@ -1,6 +1,4 @@
 #!/bin/bash
-#Default values
-
 check_exists(){
 	if [[ ! -e $1 ]]
 	then
@@ -35,11 +33,6 @@ get_plotfile_path(){
 		counter=$(( counter + 1 ))
 	done
 	plotfile=$candidate
-}
-
-# this should handle whether its line or dots or whatever
-handle_line_type(){
-	echo -n "with lines " >> "$plotfile"
 }
 
 handle_line_styles(){
