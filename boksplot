@@ -244,6 +244,9 @@ filename=$(basename $fullpath)
 get_plotfile_path
 num_colums=$(head -n1 $fullpath | awk '{print NF}')
 num_lines=$(( num_colums - 1))
+first_x=$(head -n1 "$fullpath" | awk '{print $1}')
+last_x=$(tail -n1 "$fullpath" | awk '{print $1}')
+parse_global_command "xrange" "[$first_x:$last_x]"
 
 for ((i=1;i<$num_colums;i++)); do
 	columns+=("$i")
