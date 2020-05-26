@@ -1,6 +1,6 @@
 #!/bin/bash
 check_exists(){
-	if [[ ! -e $1 ]]
+	if [[ ! -e "$1" ]]
 	then
 		echo "Error: file \"$1\" does not exists"
 		exit
@@ -8,14 +8,14 @@ check_exists(){
 }
 
 is_set(){
-	eval '[ ${'$2'[$1]+isset} ]'
+	eval '[ ${'"$2"'[$1]+isset} ]'
 }
 
 request_line_titles(){
 	for i in "${columns[@]}"; do
 		echo -n "Name of line $i: "
-		read linetitle
-		line_options[${i}title]=$linetitle
+		read -r linetitle
+		line_options[${i}title]="$linetitle"
 	done
 }
 
@@ -25,23 +25,23 @@ parse_global_command(){
 }
 
 get_plotfile_path(){
-	file_noex=$(cut -d. -f1 <<< $filename)
+	file_noex=$(cut -d. -f1 <<< "$filename")
 	counter=1
 	candidate="$parent_dir/$file_noex.gpi"
-	while [[ -e $candidate ]]; do
-		candidate=$present_dir/$file_noex-$counter.gpi
+	while [[ -e "$candidate" ]]; do
+		candidate="$present_dir/$file_noex-$counter.gpi"
 		counter=$(( counter + 1 ))
 	done
-	plotfile=$candidate
+	plotfile="$candidate"
 }
 
 handle_line_styles(){
 	for i in "${columns[@]}"; do
 		echo -n "set style line $i " >> "$plotfile"
 		for option in "${line_styling_options[@]}"; do
-			val=${option_defaults[$option]}
+			val="${option_defaults[$option]}"
 			if is_set "${i}$option" line_options; then
-				val=${line_options["${i}${option}"]}
+				val="${line_options["${i}${option}"]}"
 			fi
 			echo -n "$option $val " >> "$plotfile"
 		done
@@ -53,9 +53,9 @@ create_plotfile(){
 	echo "filename = \"$fullpath\"" > "$plotfile"
 
 	# Set global options
-	for opt in ${legal_global_options[@]}
+	for opt in "${legal_global_options[@]}"
 	do
-		if is_set $opt global_options; then
+		if is_set "$opt" global_options; then
 			echo "set $opt ${global_options[$opt]}" >> "$plotfile"
 		fi
 	done
@@ -70,7 +70,7 @@ create_plotfile(){
 	# Output line styles
 	handle_line_styles
 
-	if [[ "${columns[@]}" != "" ]]; then
+	if [[ "${columns[*]}" != "" ]]; then
 		echo -n "plot " >> "$plotfile"
 	else 
 		echo "No columns to plot"
@@ -81,12 +81,12 @@ create_plotfile(){
 	for i in "${columns[@]}"; do
 		local style=${option_defaults["style"]}
 		if is_set "${i}style" line_options; then
-			style=${line_options[${i}style]}
+			style="${line_options[${i}style]}"
 		fi
 			
 		echo -n "filename using 1:$((i+1)) title title$i ls $i with $style" >> "$plotfile"
 
-		if [[ $i != $num_lines ]]; then
+		if [[ $i != "$num_lines" ]]; then
 			echo ", \\" >> "$plotfile"	
 		fi
 	done
@@ -106,7 +106,7 @@ parse_user_width_command(){
 	local len_arr=$(( ${#words[@]} -1 ))
 	local arg_start=$((len_arr+1))	
 	if [[ $len_arr == 2 ]]; then
-		local val=${words[1]}
+		local val="${words[1]}"
 		if ! is_number $val; then echo "invalid argument: $val"; return; fi
 		for ((i=1; i<=num_lines; i++)); do
 			line_options[${i}${!arg_start}]=$val
@@ -180,8 +180,8 @@ interactive_mode(){
 		words=()
 		echo -n "> "
 		read input
-		for word in $input; do
-			words+=( $word )
+		for word in "$input"; do
+			words+=( "$word" )
 		done
 		case ${words[0]} in 
 			exit | quit)
@@ -192,14 +192,14 @@ interactive_mode(){
 				plot
 				;;
 			width | size)
-				parse_user_width_command ${words[@]} "lw"
-				parse_user_width_command ${words[@]} "ps"
+				parse_user_width_command "${words[@]}" "lw"
+				parse_user_width_command "${words[@]}" "ps"
 				;;
 			color)
-				parse_user_color_command ${words[@]} "lc rgb"
+				parse_user_color_command "${words[@]}" "lc rgb"
 				;;
 			style)
-				parse_user_style_command ${words[@]}
+				parse_user_style_command "${words[@]}"
 				;;
 			names)
 				request_line_titles
@@ -218,7 +218,7 @@ interactive_mode(){
 			;;
 			colors?)
 				# Show list of colors
-				for color in ${nice_colors[@]}; do
+				for color in "${nice_colors[@]}"; do
 					echo $color
 				done
 				;;
@@ -243,17 +243,14 @@ parent_dir=$(dirname $fullpath)
 filename=$(basename $fullpath)
 get_plotfile_path
 num_colums=$(head -n1 $fullpath | awk '{print NF}')
-num_lines=$(( num_colums - 1))
-first_x=$(head -n1 "$fullpath" | awk '{print $1}')
-last_x=$(tail -n1 "$fullpath" | awk '{print $1}')
+num_lines=$((num_colums - 1))
+first_x=$(grep -v "^#" "$fullpath" | head -n1 | awk '{print $1}')
+last_x=$(grep -v "^#" "$fullpath" | tail -n1 | awk '{print $1}')
 parse_global_command "xrange" "[$first_x:$last_x]"
-
 for ((i=1;i<$num_colums;i++)); do
 	columns+=("$i")
 done
-
 set_random_colors
 ######################################################
-
 echo "Welcome to Boksplot!"
 interactive_mode
